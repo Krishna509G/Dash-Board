@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Student Dashboard</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f0f2f5;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    .controls {
+      margin: 20px 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 1rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: white;
+      margin-top: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    th, td {
+      padding: 15px;
+      text-align: center;
+      border-bottom: 1px solid #ddd;
+    }
+    th {
+      background-color: #4CAF50;
+      color: white;
+    }
+    .pass { color: green; font-weight: bold; }
+    .fail { color: red; font-weight: bold; }
+    .actions button {
+      margin: 0 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📚 Student Dashboard</h1>
+
+  <div class="controls">
+    <input type="text" id="searchInput" placeholder="Search by name or roll..." />
+    <button onclick="addStudent()">➕ Add Student</button>
+  </div>
+
+  <table id="studentTable">
+    <thead>
+      <tr>
+        <th>Roll No</th>
+        <th>Name</th>
+        <th>Class</th>
+        <th>Marks</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Students will be rendered here -->
+    </tbody>
+  </table>
+
+  <!-- Add/Edit Modal -->
+  <div id="modal" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:#000000aa; align-items:center; justify-content:center;">
+    <div style="background:white; padding:20px; border-radius:8px; width:300px;">
+      <h3 id="modalTitle">Add Student</h3>
+      <input type="text" id="modalName" placeholder="Name" /><br/><br/>
+      <input type="text" id="modalRoll" placeholder="Roll No" /><br/><br/>
+      <input type="text" id="modalClass" placeholder="Class" /><br/><br/>
+      <input type="number" id="modalMarks" placeholder="Marks" /><br/><br/>
+      <button onclick="saveStudent()">Save</button>
+      <button onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    let students = JSON.parse(localStorage.getItem("students")) || [];
+    let editingIndex = -1;
+
+    function renderStudents(data = students) {
+      const tbody = document.querySelector("#studentTable tbody");
+      tbody.innerHTML = "";
+
+      data.forEach((student, index) => {
+        const status = student.marks >= 40 ? "Pass" : "Fail";
+        const statusClass = student.marks >= 40 ? "pass" : "fail";
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${student.roll}</td>
+          <td>${student.name}</td>
+          <td>${student.class}</td>
+          <td>${student.marks}</td>
+          <td class="${statusClass}">${status}</td>
+          <td class="actions">
+            <button onclick="editStudent(${index})">✏️</button>
+            <button onclick="deleteStudent(${index})">🗑️</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function addStudent() {
+      editingIndex = -1;
+      openModal();
+    }
+
+    function editStudent(index) {
+      editingIndex = index;
+      const s = students[index];
+      document.getElementById("modalTitle").innerText = "Edit Student";
+      document.getElementById("modalName").value = s.name;
+      document.getElementById("modalRoll").value = s.roll;
+      document.getElementById("modalClass").value = s.class;
+      document.getElementById("modalMarks").value = s.marks;
+      openModal();
+    }
+
+    function deleteStudent(index) {
+      if (confirm("Are you sure?")) {
+        students.splice(index, 1);
+        saveToStorage();
+        renderStudents();
+      }
+    }
+
+    function openModal() {
+      document.getElementById("modal").style.display = "flex";
+      if (editingIndex === -1) {
+        document.getElementById("modalTitle").innerText = "Add Student";
+        document.getElementById("modalName").value = "";
+        document.getElementById("modalRoll").value = "";
+        document.getElementById("modalClass").value = "";
+        document.getElementById("modalMarks").value = "";
+      }
+    }
+
+    function closeModal() {
+      document.getElementById("modal").style.display = "none";
+    }
+
+    function saveStudent() {
+      const name = document.getElementById("modalName").value;
+      const roll = document.getElementById("modalRoll").value;
+      const cls = document.getElementById("modalClass").value;
+      const marks = parseInt(document.getElementById("modalMarks").value);
+
+      if (!name || !roll || !cls || isNaN(marks)) {
+        alert("Please fill all fields correctly.");
+        return;
+      }
+
+      const student = { name, roll, class: cls, marks };
+
+      if (editingIndex >= 0) {
+        students[editingIndex] = student;
+      } else {
+        students.push(student);
+      }
+
+      saveToStorage();
+      closeModal();
+      renderStudents();
+    }
+
+    function saveToStorage() {
+      localStorage.setItem("students", JSON.stringify(students));
+    }
+
+    // Search Function
+    document.getElementById("searchInput").addEventListener("input", function () {
+      const term = this.value.toLowerCase();
+      const filtered = students.filter(s =>
+        s.name.toLowerCase().includes(term) || s.roll.toString().includes(term)
+      );
+      renderStudents(filtered);
+    });
+
+    // Initial render
+    renderStudents();
+  </script>
+
+</body>
+</html>
